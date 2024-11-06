@@ -1,5 +1,4 @@
-from genetic_algorithm import initialize_population, one_point_crossover, mutate
-from fitness import calculate_route_distance
+from genetic_algorithm import run_genetic_algorithm
 
 # Example distance matrix for 4 cities
 distance_matrix = [
@@ -9,23 +8,13 @@ distance_matrix = [
     [20, 25, 30, 0]
 ]
 
-# Initialize population
-population = initialize_population(population_size=5, num_cities=len(distance_matrix))
+# Parameters for the genetic algorithm
+population_size = 10
+generations = 50
+mutation_rate = 0.1
 
-# Select two parents for testing crossover
-parent1 = population[0]
-parent2 = population[1]
-print("Parent 1:", parent1)
-print("Parent 2:", parent2)
+# Run the genetic algorithm
+best_route, best_distance = run_genetic_algorithm(distance_matrix, population_size, generations, mutation_rate)
 
-# Perform one-point crossover
-offspring = one_point_crossover(parent1, parent2)
-print("Offspring:", offspring)
-
-# Apply mutation to the offspring
-mutate(offspring, mutation_rate=0.5)
-print("Offspring after mutation:", offspring)
-
-# Calculate distance for each individual in the population
-for route in population:
-    print("Route:", route, "Distance:", calculate_route_distance(route, distance_matrix))
+print("Best Route Found:", best_route)
+print("Best Distance:", best_distance)

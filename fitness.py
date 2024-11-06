@@ -5,7 +5,7 @@ def calculate_route_distance(route, distance_matrix):
     
     for i in range(num_cities):
         from_city = route[i]
-        to_city = route[(i + 1) % num_cities]  # wrap around to the first city
+        to_city = route[(i + 1) % num_cities]  # Wrap around to the first city
         total_distance += distance_matrix[from_city][to_city]
     
     return total_distance
