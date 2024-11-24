@@ -2,12 +2,13 @@ import argparse
 import random
 import numpy as np
 from genetic_algorithm import run_genetic_algorithm, generate_random_coordinates, generate_distance_matrix
-from visualization import plot_route
+from visualization import Visualization
 
 class TSPCLI:
     def __init__(self):
         self.parser = argparse.ArgumentParser(description="Genetic Algorithm for the Traveling Salesman Problem (TSP)")
         self.config()
+        self.viz = Visualization()
 
     def config(self):
         self.parser.add_argument("-n", "--num-cities", type=int, nargs="+", required=True,
@@ -77,7 +78,7 @@ class TSPCLI:
             coordinates = generate_random_coordinates(num_cities[0])
             distance_matrix = generate_distance_matrix(coordinates)
 
-            best_route, best_distance = run_genetic_algorithm(
+            best_route, best_distance, best_results = run_genetic_algorithm(
                 distance_matrix,
                 population_size[0],
                 generations[0],
@@ -85,13 +86,16 @@ class TSPCLI:
                 crossover_rate[0]
             )
 
+            self.viz.add_results(best_results, "Single Execution")
+
             # Display results
             print("\nSingle Execution:")
             print("Best Route Found:", best_route)
             print("Best Distance:", best_distance)
 
             # Visualize the best route
-            plot_route(best_route, coordinates)
+            self.viz.plot_route(best_route, coordinates)
+            self.viz.plot_best_results()
             return
 
         # Fixed parameters (exclude the test parameter)
@@ -108,7 +112,7 @@ class TSPCLI:
             distance_matrix = generate_distance_matrix(coordinates)
 
             # Run the genetic algorithm
-            best_route, best_distance = run_genetic_algorithm(
+            best_route, best_distance, best_results = run_genetic_algorithm(
                 distance_matrix,
                 int(fixed_params["population_size"]) if test_param != "population_size" else int(test_value),
                 int(fixed_params["generations"]) if test_param != "generations" else int(test_value),
@@ -116,9 +120,13 @@ class TSPCLI:
                 float(fixed_params["crossover_rate"]) if test_param != "crossover_rate" else float(test_value)
             )
 
+            self.viz.add_results(best_results, f"\n{test_param}={test_value}")
+
             # Display results
             print(f"Best Distance = {best_distance:.2f}")
 
+        self.viz.plot_best_results()
+
         # If only one value tested, visualize the route
         if len(params[test_param]) == 1:
-            plot_route(best_route, coordinates)
+            self.viz.plot_route(best_route, coordinates)

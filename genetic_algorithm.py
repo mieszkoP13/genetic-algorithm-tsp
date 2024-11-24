@@ -71,6 +71,7 @@ def run_genetic_algorithm(distance_matrix, population_size, generations, mutatio
         fitness = calculate_fitness([route], distance_matrix)[0]
         #print(f"Route {idx + 1}: {route} | Distance: {fitness}")
 
+    best_results = []
     for generation in range(generations):
         fitness = calculate_fitness(population, distance_matrix)
         
@@ -106,8 +107,9 @@ def run_genetic_algorithm(distance_matrix, population_size, generations, mutatio
         # Optional: Display progress if desired
         best_distance = min(fitness)
         print(f"Generation {generation + 1}, Best Distance: {best_distance}")
+        best_results.append(best_distance)
 
     # Return the best solution from the final population
     fitness = calculate_fitness(population, distance_matrix)
     best_index = fitness.index(min(fitness))
-    return population[best_index], min(fitness)
+    return population[best_index], min(fitness), best_results
