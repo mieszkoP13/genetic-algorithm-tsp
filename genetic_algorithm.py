@@ -66,10 +66,10 @@ def run_genetic_algorithm(distance_matrix, population_size, generations, mutatio
     population = initialize_population(population_size, len(distance_matrix))
     
     # Print initial population and its fitness
-    print("Initial Population:")
+    #print("Initial Population:")
     for idx, route in enumerate(population):
         fitness = calculate_fitness([route], distance_matrix)[0]
-        print(f"Route {idx + 1}: {route} | Distance: {fitness}")
+        #print(f"Route {idx + 1}: {route} | Distance: {fitness}")
 
     for generation in range(generations):
         fitness = calculate_fitness(population, distance_matrix)
