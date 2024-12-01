@@ -29,7 +29,7 @@ class Visualization:
         plt.grid(True)
         plt.show()
 
-    def add_results(self, best_results, label=None):
+    def add_results(self, best_results, label=None, color='red'):
         """
         Add a new list of best results for later visualization.
         
@@ -39,19 +39,20 @@ class Visualization:
         """
         if label is None:
             label = f"Series {len(self.results_sets) + 1}"
-        self.results_sets.append((best_results, label))
+        self.results_sets.append((best_results, label, color))
 
     def plot_best_results(self):
         """
         Generate the plot of all added result sets.
         """
-        plt.figure(figsize=(10, 6))
-        for results, label in self.results_sets:
-            plt.plot(range(1, len(results) + 1), results, label=label)
+        plt.figure(figsize=(15, 10))
+        for results, label, color in self.results_sets:
+            plt.plot(range(1, len(results) + 1), results, label=label, color=color)
 
-        plt.title("Best Results Over Iterations")
+        #plt.title("Best Results Over Iterations")
         plt.xlabel("Iteration")
         plt.ylabel("Best Result")
         plt.legend()
         plt.grid(True)
+        plt.tight_layout()
         plt.show()

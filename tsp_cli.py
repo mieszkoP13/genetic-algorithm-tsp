@@ -23,6 +23,8 @@ class TSPCLI:
                                  help="Crossover rate. Provide one value (e.g., 0.8) or three values for range testing (start, step, stop).")
         self.parser.add_argument("-s", "--fixed-seed", action="store_true",
                                  help="Use a fixed seed (42) for random number generation to ensure reproducibility.")
+        self.parser.add_argument("-r", "--repeats", type=int, default=1,
+                                 help="Number of times to repeat the experiment for averaging. Default is 1.")
 
     def parse_range(self, values):
         """
@@ -57,6 +59,7 @@ class TSPCLI:
         generations = self.parse_range(args.generations)
         mutation_rate = self.parse_range(args.mutation_rate)
         crossover_rate = self.parse_range(args.crossover_rate)
+        repeats = args.repeats
 
         params = {
             "num_cities": num_cities,
@@ -103,27 +106,36 @@ class TSPCLI:
 
         # Test loop
         for test_value in params[test_param]:
-            #print(f"\nTesting {test_param}={test_value} with fixed parameters: {fixed_params}")
+            best_results_for_test_value = []
 
-            # Generate random city coordinates
-            coordinates = generate_random_coordinates(int(fixed_params["num_cities"]) if test_param != "num_cities" else int(test_value))
+            color = np.random.rand(3,)
             
-            # Generate the distance matrix from coordinates
-            distance_matrix = generate_distance_matrix(coordinates)
+            for _ in range(repeats):
+                #print(f"\nTesting {test_param}={test_value} with fixed parameters: {fixed_params}")
 
-            # Run the genetic algorithm
-            best_route, best_distance, best_results = run_genetic_algorithm(
-                distance_matrix,
-                int(fixed_params["population_size"]) if test_param != "population_size" else int(test_value),
-                int(fixed_params["generations"]) if test_param != "generations" else int(test_value),
-                float(fixed_params["mutation_rate"]) if test_param != "mutation_rate" else float(test_value),
-                float(fixed_params["crossover_rate"]) if test_param != "crossover_rate" else float(test_value)
-            )
+                # Generate random city coordinates
+                coordinates = generate_random_coordinates(int(fixed_params["num_cities"]) if test_param != "num_cities" else int(test_value))
+                
+                # Generate the distance matrix from coordinates
+                distance_matrix = generate_distance_matrix(coordinates)
 
-            self.viz.add_results(best_results, f"\n{test_param}={test_value}")
+                # Run the genetic algorithm
+                best_route, best_distance, best_results = run_genetic_algorithm(
+                    distance_matrix,
+                    int(fixed_params["population_size"]) if test_param != "population_size" else int(test_value),
+                    int(fixed_params["generations"]) if test_param != "generations" else int(test_value),
+                    float(fixed_params["mutation_rate"]) if test_param != "mutation_rate" else float(test_value),
+                    float(fixed_params["crossover_rate"]) if test_param != "crossover_rate" else float(test_value)
+                )
 
-            # Display results
-            print(f"Best Distance = {best_distance:.2f}")
+                best_results_for_test_value.append(best_results)
+                
+
+                # Display results
+                print(f"Best Distance = {best_distance:.2f}")
+            
+            y_mean = np.mean(best_results_for_test_value, axis=0)
+            self.viz.add_results(y_mean, f"\n{test_param}={test_value:.2f}", color)
 
         self.viz.plot_best_results()
 
