@@ -21,6 +21,14 @@ class TSPCLI:
                                  help="Mutation rate. Provide one value (e.g., 0.1) or three values for range testing (start, step, stop).")
         self.parser.add_argument("-c", "--crossover-rate", type=float, nargs="+", required=True,
                                  help="Crossover rate. Provide one value (e.g., 0.8) or three values for range testing (start, step, stop).")
+        
+        self.parser.add_argument("--selection-method", choices=["tournament", "elitism"], default="tournament",
+                                 help="Method of selection: 'tournament' (default) or 'elitism'.")
+        self.parser.add_argument("--crossover-method", choices=["one_point", "cycle", "order"], default="one_point",
+                                 help="Method of crossover: 'one_point' (default), 'cycle', or 'order'.")
+        self.parser.add_argument("--mutation-method", choices=["swap", "inverse"], default="swap",
+                                 help="Method of mutation: 'swap' (default) or 'inverse'.")
+
         self.parser.add_argument("-s", "--fixed-seed", action="store_true",
                                  help="Use a fixed seed (42) for random number generation to ensure reproducibility.")
         self.parser.add_argument("-r", "--repeats", type=int, default=1,
@@ -86,7 +94,10 @@ class TSPCLI:
                 population_size[0],
                 generations[0],
                 mutation_rate[0],
-                crossover_rate[0]
+                crossover_rate[0],
+                args.selection_method,
+                args.crossover_method,
+                args.mutation_method
             )
 
             self.viz.add_results(best_results, "Single Execution")
@@ -125,7 +136,10 @@ class TSPCLI:
                     int(fixed_params["population_size"]) if test_param != "population_size" else int(test_value),
                     int(fixed_params["generations"]) if test_param != "generations" else int(test_value),
                     float(fixed_params["mutation_rate"]) if test_param != "mutation_rate" else float(test_value),
-                    float(fixed_params["crossover_rate"]) if test_param != "crossover_rate" else float(test_value)
+                    float(fixed_params["crossover_rate"]) if test_param != "crossover_rate" else float(test_value),
+                    args.selection_method,
+                    args.crossover_method,
+                    args.mutation_method
                 )
 
                 best_results_for_test_value.append(best_results)
