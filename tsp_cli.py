@@ -4,6 +4,23 @@ import numpy as np
 from genetic_algorithm import run_genetic_algorithm, generate_random_coordinates, generate_distance_matrix
 from visualization import Visualization
 
+SELECTION_METHODS = ["tournament", "elitism", "steady_state"]
+CROSSOVER_METHODS = ["one_point", "cycle", "order"]
+MUTATION_METHODS = ["swap", "adjacent_swap", "inverse", "insertion"]
+
+PREDEFINED_COLORS = [
+    (1.0, 0.0, 0.0),  # Red
+    (0.0, 1.0, 0.0),  # Green
+    (0.0, 0.0, 1.0),  # Blue
+    (1.0, 1.0, 0.0),  # Yellow
+    (1.0, 0.0, 1.0),  # Magenta
+    (0.0, 1.0, 1.0),  # Cyan
+    (0.5, 0.5, 0.5),  # Gray
+    (0.8, 0.4, 0.0),  # Orange
+    (0.4, 0.0, 0.8),  # Purple
+    (0.0, 0.4, 0.8)   # Light Blue
+]
+
 class TSPCLI:
     def __init__(self):
         self.parser = argparse.ArgumentParser(description="Genetic Algorithm for the Traveling Salesman Problem (TSP)")
@@ -22,12 +39,13 @@ class TSPCLI:
         self.parser.add_argument("-c", "--crossover-rate", type=float, nargs="+", required=True,
                                  help="Crossover rate. Provide one value (e.g., 0.8) or three values for range testing (start, step, stop).")
         
-        self.parser.add_argument("--selection-method", choices=["tournament", "elitism"], default="tournament",
-                                 help="Method of selection: 'tournament' (default) or 'elitism'.")
-        self.parser.add_argument("--crossover-method", choices=["one_point", "cycle", "order"], default="one_point",
-                                 help="Method of crossover: 'one_point' (default), 'cycle', or 'order'.")
-        self.parser.add_argument("--mutation-method", choices=["swap", "inverse"], default="swap",
-                                 help="Method of mutation: 'swap' (default) or 'inverse'.")
+        self.parser.add_argument("--selection-method", choices=["tournament", "elitism", "steady_state", "each"], default="tournament",
+                                 help="Method of selection: 'tournament' (default), 'elitism', or 'each' to iterate through all.")
+        self.parser.add_argument("--crossover-method", choices=["one_point", "cycle", "order", "each"], default="one_point",
+                                 help="Method of crossover: 'one_point' (default), 'cycle', 'order', or 'each' to iterate through all.")
+        self.parser.add_argument("--mutation-method", choices=["swap", "adjacent_swap", "inverse", "insertion", "each"], default="swap",
+                                 help="Method of mutation: 'swap' (default), 'inverse', or 'each' to iterate through all.")
+
 
         self.parser.add_argument("-s", "--fixed-seed", action="store_true",
                                  help="Use a fixed seed (42) for random number generation to ensure reproducibility.")
@@ -86,31 +104,53 @@ class TSPCLI:
 
         # If no parameter is a range, run the algorithm once
         if not test_param:
-            coordinates = generate_random_coordinates(num_cities[0])
-            distance_matrix = generate_distance_matrix(coordinates)
+            # Prepare methods for iteration
+            selection_methods = SELECTION_METHODS if args.selection_method == "each" else [args.selection_method]
+            crossover_methods = CROSSOVER_METHODS if args.crossover_method == "each" else [args.crossover_method]
+            mutation_methods = MUTATION_METHODS if args.mutation_method == "each" else [args.mutation_method]
 
-            best_route, best_distance, best_results = run_genetic_algorithm(
-                distance_matrix,
-                population_size[0],
-                generations[0],
-                mutation_rate[0],
-                crossover_rate[0],
-                args.selection_method,
-                args.crossover_method,
-                args.mutation_method
-            )
+            color_index = 0  # Start with the first color
 
-            self.viz.add_results(best_results, "Single Execution")
+            for selection_method in selection_methods:
+                for crossover_method in crossover_methods:
+                    for mutation_method in mutation_methods:
+                        # Select a color from predefined list or generate one if out of predefined colors
+                        color = PREDEFINED_COLORS[color_index] if color_index < len(PREDEFINED_COLORS) else np.random.rand(3,)
+            
+                        best_results_for_test_value = []
+                        for _ in range(repeats):
+                            print(f"\nTesting Selection: {selection_method}, Crossover: {crossover_method}, Mutation: {mutation_method}")
 
-            # Display results
-            print("\nSingle Execution:")
-            print("Best Route Found:", best_route)
-            print("Best Distance:", best_distance)
+                            # Generate coordinates and distance matrix
+                            coordinates = generate_random_coordinates(num_cities[0])
+                            distance_matrix = generate_distance_matrix(coordinates)
 
-            # Visualize the best route
-            self.viz.plot_route(best_route, coordinates)
+                            # Run the genetic algorithm
+                            best_route, best_distance, best_results = run_genetic_algorithm(
+                                distance_matrix,
+                                population_size[0],
+                                generations[0],
+                                mutation_rate[0],
+                                crossover_rate[0],
+                                selection_method,
+                                crossover_method,
+                                mutation_method
+                            )
+
+                            best_results_for_test_value.append(best_results)
+
+                            # Visualize the best route
+                            #self.viz.plot_route(best_route, coordinates)
+
+                        color_index = (color_index + 1) % (len(PREDEFINED_COLORS) + 1)
+                        label = f"{selection_method} + {crossover_method} + {mutation_method}"
+                        y_mean = np.mean(best_results_for_test_value, axis=0)
+                        self.viz.add_results(y_mean, label, color)
+
+            # Visualize results for all combinations
             self.viz.plot_best_results()
             return
+
 
         # Fixed parameters (exclude the test parameter)
         fixed_params = {key: val[0] for key, val in params.items() if key != test_param}

@@ -44,13 +44,44 @@ def mutate_swap(route, mutation_rate):
         idx1, idx2 = random.sample(range(len(route)), 2)
         route[idx1], route[idx2] = route[idx2], route[idx1]
 
+def mutate_adjacent_swap(route, mutation_rate):
+    """
+    Perform mutation by swapping two adjacent cities in the route.
+    Args:
+        route: The current route (list of cities).
+        mutation_rate: Probability of applying the mutation.
+    """
+    if random.random() < mutation_rate:
+        # Randomly select an index for adjacent swapping
+        idx = random.randint(0, len(route) - 2)
+        # Swap the selected city with its adjacent neighbor
+        route[idx], route[idx + 1] = route[idx + 1], route[idx]
+
 def mutate_inverse(route, mutation_rate):
     """Perform inversion mutation by reversing a segment of the route."""
     if random.random() < mutation_rate:
         idx1, idx2 = sorted(random.sample(range(len(route)), 2))
         route[idx1:idx2] = reversed(route[idx1:idx2])
 
-def tournament_selection(population, fitness, tournament_size=3):
+def mutate_insertion(route, mutation_rate):
+    """
+    Perform mutation by moving a city to a new position in the route.
+    Args:
+        route: The current route (list of cities).
+        mutation_rate: Probability of applying the mutation.
+    """
+    if random.random() < mutation_rate:
+        # Select a random city and a new position
+        city_idx = random.randint(0, len(route) - 1)
+        new_pos = random.randint(0, len(route) - 1)
+        
+        # Remove the city from its original position
+        city = route.pop(city_idx)
+        
+        # Insert the city at the new position
+        route.insert(new_pos, city)
+
+def tournament_selection(population, fitness, tournament_size=6):
     """Select parents using tournament selection."""
     selected_parents = []
     for _ in range(len(population) // 2):
@@ -63,6 +94,28 @@ def tournament_selection(population, fitness, tournament_size=3):
 def elitism_selection(population, fitness, elite_size=2):
     sorted_indices = sorted(range(len(fitness)), key=lambda i: fitness[i])
     return [population[i] for i in sorted_indices[:elite_size]]
+
+def steady_state_selection(population, fitness, num_survivors=None):
+    """
+    Perform steady-state selection by keeping the best individuals.
+    Args:
+        population: List of individuals (routes).
+        fitness: List of fitness values (lower is better for TSP).
+        num_survivors: Number of individuals to keep in the next generation.
+                       If None, defaults to keeping half the population.
+    Returns:
+        Selected survivors (list of individuals).
+    """
+    # Set default number of survivors to half the population size
+    if num_survivors is None:
+        num_survivors = len(population) // 2
+
+    # Sort population by fitness (ascending order)
+    sorted_population = [x for _, x in sorted(zip(fitness, population))]
+
+    # Keep the best `num_survivors` individuals
+    return sorted_population[:num_survivors]
+
 
 def one_point_crossover(parent1, parent2):
     """Perform one-point crossover between two parents."""
@@ -114,7 +167,8 @@ def run_genetic_algorithm(distance_matrix, population_size, generations, mutatio
     # Mapping selection crossover and mutation
     selection_functions = {
         "tournament": tournament_selection,
-        "elitism": elitism_selection
+        "elitism": elitism_selection,
+        "steady_state": steady_state_selection
     }
     crossover_functions = {
         "one_point": one_point_crossover,
@@ -123,7 +177,9 @@ def run_genetic_algorithm(distance_matrix, population_size, generations, mutatio
     }
     mutation_functions = {
         "swap": mutate_swap,
-        "inverse": mutate_inverse
+        "adjacent_swap": mutate_adjacent_swap,
+        "inverse": mutate_inverse,
+        "insertion": mutate_insertion,
     }
     
     select_func = selection_functions[selection_method]
