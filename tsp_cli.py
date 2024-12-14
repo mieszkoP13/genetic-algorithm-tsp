@@ -1,6 +1,7 @@
 import argparse
 import random
 import numpy as np
+import pandas as pd
 from genetic_algorithm import run_genetic_algorithm, generate_random_coordinates, generate_distance_matrix
 from visualization import Visualization
 
@@ -111,6 +112,8 @@ class TSPCLI:
 
             color_index = 0  # Start with the first color
 
+            stats_data = []  # Collect statistics list
+
             for selection_method in selection_methods:
                 for crossover_method in crossover_methods:
                     for mutation_method in mutation_methods:
@@ -139,13 +142,30 @@ class TSPCLI:
 
                             best_results_for_test_value.append(best_results)
 
-                            # Visualize the best route
-                            #self.viz.plot_route(best_route, coordinates)
+                        # Collect statistics for the current method combination
+                        min_values = [min(results) for results in best_results_for_test_value]
+                        stats_data.append({
+                            'selectionType': selection_method,
+                            'crossoverType': crossover_method,
+                            'mutationType': mutation_method,
+                            'mean_min': np.mean(min_values),
+                            'std_min': np.std(min_values),
+                            'p25_min': np.percentile(min_values, 25),
+                            'p50_min': np.percentile(min_values, 50),
+                            'p75_min': np.percentile(min_values, 75),
+                            'max_min': np.max(min_values)
+                        })
 
+                        # Update color for the next combination
                         color_index = (color_index + 1) % (len(PREDEFINED_COLORS) + 1)
                         label = f"{selection_method} + {crossover_method} + {mutation_method}"
                         y_mean = np.mean(best_results_for_test_value, axis=0)
                         self.viz.add_results(y_mean, label, color)
+
+            # Convert stats data to a DataFrame
+            stats_df = pd.DataFrame(stats_data)
+            stats_df.set_index(['selectionType', 'crossoverType', 'mutationType'], inplace=True)
+            print(stats_df)
 
             # Visualize results for all combinations
             self.viz.plot_best_results()

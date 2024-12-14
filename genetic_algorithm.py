@@ -124,9 +124,11 @@ def one_point_crossover(parent1, parent2):
     return offspring
 
 def cycle_crossover(parent1, parent2):
+    """Perform cycle crossover between two parents."""
     size = len(parent1)
     offspring = [None] * size
     index = 0
+
     while None in offspring:
         start = parent1[index]
         while True:
@@ -134,6 +136,7 @@ def cycle_crossover(parent1, parent2):
             index = parent1.index(parent2[index])
             if parent1[index] == start:
                 break
+
         index = offspring.index(None) if None in offspring else -1
     return offspring
 
@@ -142,11 +145,9 @@ def order_crossover(parent1, parent2):
     size = len(parent1)
     offspring = [None] * size
 
-    # Select random segment
     start, end = sorted(random.sample(range(size), 2))
     offspring[start:end] = parent1[start:end]
 
-    # Fill the rest from parent2
     current_idx = end
     for gene in parent2:
         if gene not in offspring:
