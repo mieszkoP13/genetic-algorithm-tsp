@@ -2,8 +2,8 @@ import argparse
 import random
 import numpy as np
 import pandas as pd
-from genetic_algorithm import run_genetic_algorithm, generate_random_coordinates, generate_distance_matrix
 from visualization import Visualization
+from genetic_algorithm import GeneticAlgorithm
 
 SELECTION_METHODS = ["tournament", "elitism", "steady_state"]
 CROSSOVER_METHODS = ["one_point", "cycle", "order"]
@@ -78,6 +78,10 @@ class TSPCLI:
         return range_params[0] if range_params else None
 
     def run(self):
+        """
+        Initializes the algorithm with the provided arguments and then prints the best route and distance.
+        It also calls plot_route to visualize the result.
+        """
         args = self.parser.parse_args()
 
         # Parse all parameters
@@ -119,28 +123,35 @@ class TSPCLI:
                     for mutation_method in mutation_methods:
                         # Select a color from predefined list or generate one if out of predefined colors
                         color = PREDEFINED_COLORS[color_index] if color_index < len(PREDEFINED_COLORS) else np.random.rand(3,)
-            
+
                         best_results_for_test_value = []
                         for _ in range(repeats):
-                            print(f"\nTesting Selection: {selection_method}, Crossover: {crossover_method}, Mutation: {mutation_method}")
 
                             # Generate coordinates and distance matrix
-                            coordinates = generate_random_coordinates(num_cities[0])
-                            distance_matrix = generate_distance_matrix(coordinates)
+                            coordinates = GeneticAlgorithm.generate_random_coordinates(num_cities[0])
+                            distance_matrix = GeneticAlgorithm.generate_distance_matrix(coordinates)
 
-                            # Run the genetic algorithm
-                            best_route, best_distance, best_results = run_genetic_algorithm(
-                                distance_matrix,
-                                population_size[0],
-                                generations[0],
-                                mutation_rate[0],
-                                crossover_rate[0],
-                                selection_method,
-                                crossover_method,
-                                mutation_method
+                            # Initialize the Genetic Algorithm with current parameters
+                            ga = GeneticAlgorithm(
+                                distance_matrix=distance_matrix,
+                                population_size=population_size[0],
+                                generations=generations[0],
+                                mutation_rate=mutation_rate[0],
+                                crossover_rate=crossover_rate[0],
+                                selection_method=selection_method,
+                                crossover_method=crossover_method,
+                                mutation_method=mutation_method,
                             )
 
+                            # Run the genetic algorithm
+                            best_route, best_distance, best_results = ga.run()
+
                             best_results_for_test_value.append(best_results)
+
+                            # Display results
+                            print(f"Testing Selection: {selection_method}, Crossover: {crossover_method}, Mutation: {mutation_method}")
+                            print(f"Best Distance = {best_distance:.2f}")
+
 
                         # Collect statistics for the current method combination
                         min_values = [min(results) for results in best_results_for_test_value]
@@ -174,42 +185,63 @@ class TSPCLI:
 
         # Fixed parameters (exclude the test parameter)
         fixed_params = {key: val[0] for key, val in params.items() if key != test_param}
+        stats_data = []  # Collect statistics list
 
         # Test loop
         for test_value in params[test_param]:
             best_results_for_test_value = []
 
-            color = np.random.rand(3,)
-            
+            color = np.random.rand(3,)  # Random color for plotting, if needed
+
             for _ in range(repeats):
-                #print(f"\nTesting {test_param}={test_value} with fixed parameters: {fixed_params}")
-
                 # Generate random city coordinates
-                coordinates = generate_random_coordinates(int(fixed_params["num_cities"]) if test_param != "num_cities" else int(test_value))
-                
-                # Generate the distance matrix from coordinates
-                distance_matrix = generate_distance_matrix(coordinates)
-
-                # Run the genetic algorithm
-                best_route, best_distance, best_results = run_genetic_algorithm(
-                    distance_matrix,
-                    int(fixed_params["population_size"]) if test_param != "population_size" else int(test_value),
-                    int(fixed_params["generations"]) if test_param != "generations" else int(test_value),
-                    float(fixed_params["mutation_rate"]) if test_param != "mutation_rate" else float(test_value),
-                    float(fixed_params["crossover_rate"]) if test_param != "crossover_rate" else float(test_value),
-                    args.selection_method,
-                    args.crossover_method,
-                    args.mutation_method
+                coordinates = GeneticAlgorithm.generate_random_coordinates(
+                    int(fixed_params["num_cities"]) if test_param != "num_cities" else int(test_value)
                 )
 
+                # Generate the distance matrix from coordinates
+                distance_matrix = GeneticAlgorithm.generate_distance_matrix(coordinates)
+
+                # Initialize the Genetic Algorithm with current test parameters
+                ga = GeneticAlgorithm(
+                    distance_matrix=distance_matrix,
+                    population_size=int(fixed_params["population_size"]) if test_param != "population_size" else int(test_value),
+                    generations=int(fixed_params["generations"]) if test_param != "generations" else int(test_value),
+                    mutation_rate=float(fixed_params["mutation_rate"]) if test_param != "mutation_rate" else float(test_value),
+                    crossover_rate=float(fixed_params["crossover_rate"]) if test_param != "crossover_rate" else float(test_value),
+                    selection_method=args.selection_method,
+                    crossover_method=args.crossover_method,
+                    mutation_method=args.mutation_method,
+                )
+
+                # Run the genetic algorithm
+                best_route, best_distance, best_results = ga.run()
+
                 best_results_for_test_value.append(best_results)
-                
 
                 # Display results
+                print(f"Testing {test_param} = {test_value:.2f}")
                 print(f"Best Distance = {best_distance:.2f}")
+
+            # Collect statistics for the current method combination
+            min_values = [min(results) for results in best_results_for_test_value]
+            stats_data.append({
+                f'{test_param}': test_value,
+                'mean_min': np.mean(min_values),
+                'std_min': np.std(min_values),
+                'p25_min': np.percentile(min_values, 25),
+                'p50_min': np.percentile(min_values, 50),
+                'p75_min': np.percentile(min_values, 75),
+                'max_min': np.max(min_values)
+            })
             
             y_mean = np.mean(best_results_for_test_value, axis=0)
             self.viz.add_results(y_mean, f"\n{test_param}={test_value:.2f}", color)
+
+        # Convert stats data to a DataFrame
+        stats_df = pd.DataFrame(stats_data)
+        stats_df.set_index([f'{test_param}'], inplace=True)
+        print(stats_df)
 
         self.viz.plot_best_results()
 
