@@ -2,8 +2,8 @@ import argparse
 import random
 import numpy as np
 import pandas as pd
-from visualization import Visualization
-from genetic_algorithm import GeneticAlgorithm
+from genetic_algorithm.visualization import Visualization
+from genetic_algorithm.genetic_algorithm import GeneticAlgorithm
 
 SELECTION_METHODS = ["tournament", "elitism", "steady_state"]
 CROSSOVER_METHODS = ["one_point", "cycle", "order"]
