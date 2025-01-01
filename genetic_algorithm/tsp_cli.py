@@ -77,12 +77,11 @@ class TSPCLI:
             raise ValueError(f"Only one parameter can be a range. Multiple ranges provided: {range_params}.")
         return range_params[0] if range_params else None
 
-    def run(self):
-        """
-        Initializes the algorithm with the provided arguments and then prints the best route and distance.
-        It also calls plot_route to visualize the result.
-        """
-        args = self.parser.parse_args()
+    def run(self, args=None):
+        if args:
+            args = self.parser.parse_args(args)
+        else:
+            args = self.parser.parse_args()
 
         # Parse all parameters
         num_cities = self.parse_range(args.num_cities)
@@ -174,9 +173,11 @@ class TSPCLI:
                         self.viz.add_results(y_mean, label, color)
 
             # Convert stats data to a DataFrame
-            stats_df = pd.DataFrame(stats_data)
-            stats_df.set_index(['selectionType', 'crossoverType', 'mutationType'], inplace=True)
-            print(stats_df)
+            # only if there is sufficient data
+            if repeats > 1:
+                stats_df = pd.DataFrame(stats_data)
+                stats_df.set_index(['selectionType', 'crossoverType', 'mutationType'], inplace=True)
+                print(stats_df)
 
             # Visualize results for all combinations
             self.viz.plot_best_results()
@@ -239,9 +240,11 @@ class TSPCLI:
             self.viz.add_results(y_mean, f"\n{test_param}={test_value:.2f}", color)
 
         # Convert stats data to a DataFrame
-        stats_df = pd.DataFrame(stats_data)
-        stats_df.set_index([f'{test_param}'], inplace=True)
-        print(stats_df)
+        # only if there is sufficient data
+        if repeats > 1:
+            stats_df = pd.DataFrame(stats_data)
+            stats_df.set_index([f'{test_param}'], inplace=True)
+            print(stats_df)
 
         self.viz.plot_best_results()
 
