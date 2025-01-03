@@ -36,6 +36,7 @@ class SimulatedAnnealing:
 
         temperature = self.initial_temperature
 
+        best_results = []  # To track best distances over iterations
         while temperature > self.stop_temperature:
             new_route = current_route[:]
             self._swap(new_route)
@@ -49,6 +50,9 @@ class SimulatedAnnealing:
                     best_route = current_route[:]
                     best_distance = current_distance
 
+            # Record the best distance for plotting
+            best_results.append(best_distance)
+
             temperature *= self.cooling_rate
 
-        return best_route, best_distance
+        return best_route, best_distance, best_results
