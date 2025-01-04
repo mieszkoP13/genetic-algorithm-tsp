@@ -23,10 +23,11 @@ PREDEFINED_COLORS = [
 ]
 
 class TSPCLI:
-    def __init__(self):
+    def __init__(self, args=None, viz=Visualization()):
         self.parser = argparse.ArgumentParser(description="Genetic Algorithm for the Traveling Salesman Problem (TSP)")
         self.config()
-        self.viz = Visualization()
+        self.args = self.parser.parse_args(args)
+        self.viz = viz
 
     def config(self):
         self.parser.add_argument("-n", "--num-cities", type=int, nargs="+", required=True,
@@ -77,19 +78,14 @@ class TSPCLI:
             raise ValueError(f"Only one parameter can be a range. Multiple ranges provided: {range_params}.")
         return range_params[0] if range_params else None
 
-    def run(self, args=None):
-        if args:
-            args = self.parser.parse_args(args)
-        else:
-            args = self.parser.parse_args()
-
+    def run(self):
         # Parse all parameters
-        num_cities = self.parse_range(args.num_cities)
-        population_size = self.parse_range(args.population_size)
-        generations = self.parse_range(args.generations)
-        mutation_rate = self.parse_range(args.mutation_rate)
-        crossover_rate = self.parse_range(args.crossover_rate)
-        repeats = args.repeats
+        num_cities = self.parse_range(self.args.num_cities)
+        population_size = self.parse_range(self.args.population_size)
+        generations = self.parse_range(self.args.generations)
+        mutation_rate = self.parse_range(self.args.mutation_rate)
+        crossover_rate = self.parse_range(self.args.crossover_rate)
+        repeats = self.args.repeats
 
         params = {
             "num_cities": num_cities,
@@ -103,15 +99,15 @@ class TSPCLI:
         test_param = self.ensure_single_test_param(params)
 
         # Set seed if fixed-seed option is provided
-        if args.fixed_seed:
+        if self.args.fixed_seed:
             random.seed(42)
 
         # If no parameter is a range, run the algorithm once
         if not test_param:
             # Prepare methods for iteration
-            selection_methods = SELECTION_METHODS if args.selection_method == "each" else [args.selection_method]
-            crossover_methods = CROSSOVER_METHODS if args.crossover_method == "each" else [args.crossover_method]
-            mutation_methods = MUTATION_METHODS if args.mutation_method == "each" else [args.mutation_method]
+            selection_methods = SELECTION_METHODS if self.args.selection_method == "each" else [self.args.selection_method]
+            crossover_methods = CROSSOVER_METHODS if self.args.crossover_method == "each" else [self.args.crossover_method]
+            mutation_methods = MUTATION_METHODS if self.args.mutation_method == "each" else [self.args.mutation_method]
 
             color_index = 0  # Start with the first color
 
@@ -179,8 +175,6 @@ class TSPCLI:
                 stats_df.set_index(['selectionType', 'crossoverType', 'mutationType'], inplace=True)
                 print(stats_df)
 
-            # Visualize results for all combinations
-            self.viz.plot_best_results()
             return
 
 
@@ -210,9 +204,9 @@ class TSPCLI:
                     generations=int(fixed_params["generations"]) if test_param != "generations" else int(test_value),
                     mutation_rate=float(fixed_params["mutation_rate"]) if test_param != "mutation_rate" else float(test_value),
                     crossover_rate=float(fixed_params["crossover_rate"]) if test_param != "crossover_rate" else float(test_value),
-                    selection_method=args.selection_method,
-                    crossover_method=args.crossover_method,
-                    mutation_method=args.mutation_method,
+                    selection_method=self.args.selection_method,
+                    crossover_method=self.args.crossover_method,
+                    mutation_method=self.args.mutation_method,
                 )
 
                 # Run the genetic algorithm
@@ -245,8 +239,6 @@ class TSPCLI:
             stats_df = pd.DataFrame(stats_data)
             stats_df.set_index([f'{test_param}'], inplace=True)
             print(stats_df)
-
-        self.viz.plot_best_results()
 
         # If only one value tested, visualize the route
         if len(params[test_param]) == 1:

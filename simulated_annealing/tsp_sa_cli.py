@@ -6,10 +6,11 @@ import pandas as pd
 import numpy as np
 
 class TSP_SA_CLI:
-    def __init__(self):
+    def __init__(self, args=None, viz=Visualization()):
         self.parser = argparse.ArgumentParser(description="Simulated Annealing for the Traveling Salesman Problem (TSP)")
         self.config()
-        self.viz = Visualization()
+        self.args = self.parser.parse_args(args)
+        self.viz = viz
 
     def config(self):
         self.parser.add_argument("-n", "--num-cities", type=int, required=True, help="Number of cities.")
@@ -21,33 +22,28 @@ class TSP_SA_CLI:
         self.parser.add_argument("-r", "--repeats", type=int, default=1,
                                  help="Number of times to repeat the experiment for averaging. Default is 1.")
 
-    def run(self, args=None):
-        if args:
-            args = self.parser.parse_args(args)
-        else:
-            args = self.parser.parse_args()
-
-        if args.fixed_seed:
+    def run(self):
+        if self.args.fixed_seed:
             import random
             random.seed(42)
 
         # Generate random TSP problem
-        coordinates = GeneticAlgorithm.generate_random_coordinates(args.num_cities)
+        coordinates = GeneticAlgorithm.generate_random_coordinates(self.args.num_cities)
         distance_matrix = GeneticAlgorithm.generate_distance_matrix(coordinates)
 
         # Initialize variables for statistics collection
         stats_data = []
         best_results_for_repeats = []
 
-        for repeat in range(args.repeats):
-            print(f"Run {repeat + 1}/{args.repeats}")
+        for repeat in range(self.args.repeats):
+            print(f"Run {repeat + 1}/{self.args.repeats}")
 
             # Initialize Simulated Annealing with generated distance matrix
             sa = SimulatedAnnealing(
                 distance_matrix=distance_matrix,
-                initial_temperature=args.initial_temperature,
-                cooling_rate=args.cooling_rate,
-                stop_temperature=args.stop_temperature,
+                initial_temperature=self.args.initial_temperature,
+                cooling_rate=self.args.cooling_rate,
+                stop_temperature=self.args.stop_temperature,
             )
 
             # Run Simulated Annealing
@@ -62,9 +58,9 @@ class TSP_SA_CLI:
         # Collect statistics
         min_values = [min(results) for results in best_results_for_repeats]
         stats_data.append({
-            'initial_temperature': args.initial_temperature,
-            'cooling_rate': args.cooling_rate,
-            'stop_temperature': args.stop_temperature,
+            'initial_temperature': self.args.initial_temperature,
+            'cooling_rate': self.args.cooling_rate,
+            'stop_temperature': self.args.stop_temperature,
             'mean_min': np.mean(min_values),
             'std_min': np.std(min_values),
             'p25_min': np.percentile(min_values, 25),
@@ -76,11 +72,8 @@ class TSP_SA_CLI:
         y_mean = np.mean(best_results_for_repeats, axis=0)
         self.viz.add_results(y_mean, "label", "red")
 
-        # Visualize results for all combinations
-        self.viz.plot_best_results()
-
         # Convert stats data to a DataFrame
-        if args.repeats > 1:
+        if self.args.repeats > 1:
             stats_df = pd.DataFrame(stats_data)
             stats_df.set_index(['initial_temperature', 'cooling_rate', 'stop_temperature'], inplace=True)
             print("\nStatistics:")

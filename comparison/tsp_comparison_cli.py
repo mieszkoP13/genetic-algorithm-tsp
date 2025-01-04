@@ -1,16 +1,20 @@
 import argparse
 from genetic_algorithm.tsp_cli import TSPCLI
 from simulated_annealing.tsp_sa_cli import TSP_SA_CLI
+from genetic_algorithm.visualization import Visualization
 
 class TSPComparisonCLI:
     def __init__(self):
         # Create main parser for `compare`
         self.parser = argparse.ArgumentParser(description="Compare Genetic Algorithm and Simulated Annealing for TSP")
         self.config()
+        self.viz = Visualization()
 
     def config(self):
         # Args shared for both Algorithms
         self.parser.add_argument("-n", "--num-cities", type=int, required=True, help="Number of cities.")
+        self.parser.add_argument("-r", "--repeats", type=int, default=1,
+                            help="Number of times to repeat the experiment for averaging. Default is 1.")
 
         # Args for GA
         self.parser.add_argument("-p", "--population-size", type=int, required=True, help="Population size for GA.")
@@ -33,6 +37,7 @@ class TSPComparisonCLI:
             "-g", str(args.generations),
             "-m", str(args.mutation_rate),
             "-c", str(args.crossover_rate),
+            "-r", str(args.repeats),
         ]
 
         # Pass args to SA
@@ -41,13 +46,13 @@ class TSPComparisonCLI:
             "-t", str(args.initial_temperature),
             "-x", str(args.cooling_rate),
             "-e", str(args.stop_temperature),
+            "-r", str(args.repeats),
         ]
 
         # Run GA
         print("\nRunning Genetic Algorithm...")
-        TSPCLI().run(args=ga_args)
+        TSPCLI(ga_args, self.viz).run()
 
         # Run SA
         print("\nRunning Simulated Annealing...")
-        TSP_SA_CLI().run(args=sa_args)
-
+        TSP_SA_CLI(sa_args, self.viz).run()
