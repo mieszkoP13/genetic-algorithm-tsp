@@ -1,5 +1,5 @@
 import argparse
-from genetic_algorithm.tsp_cli import TSPCLI
+from genetic_algorithm.tsp_ga_cli import TSP_GA_CLI
 from simulated_annealing.tsp_sa_cli import TSP_SA_CLI
 from genetic_algorithm.visualization import Visualization
 
@@ -51,7 +51,7 @@ class TSPComparisonCLI:
 
         # Run GA
         print("\nRunning Genetic Algorithm...")
-        TSPCLI(ga_args, self.viz).run()
+        TSP_GA_CLI(ga_args, self.viz).run()
 
         # Run SA
         print("\nRunning Simulated Annealing...")

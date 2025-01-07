@@ -22,7 +22,7 @@ PREDEFINED_COLORS = [
     (0.0, 0.4, 0.8)   # Light Blue
 ]
 
-class TSPCLI:
+class TSP_GA_CLI:
     def __init__(self, args=None, viz=Visualization()):
         self.parser = argparse.ArgumentParser(description="Genetic Algorithm for the Traveling Salesman Problem (TSP)")
         self.config()
