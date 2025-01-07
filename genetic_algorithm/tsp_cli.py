@@ -113,6 +113,10 @@ class TSPCLI:
 
             stats_data = []  # Collect statistics list
 
+            # Generate coordinates and distance matrix
+            coordinates = GeneticAlgorithm.generate_random_coordinates(num_cities[0])
+            distance_matrix = GeneticAlgorithm.generate_distance_matrix(coordinates)
+
             for selection_method in selection_methods:
                 for crossover_method in crossover_methods:
                     for mutation_method in mutation_methods:
@@ -122,9 +126,7 @@ class TSPCLI:
                         best_results_for_test_value = []
                         for _ in range(repeats):
 
-                            # Generate coordinates and distance matrix
-                            coordinates = GeneticAlgorithm.generate_random_coordinates(num_cities[0])
-                            distance_matrix = GeneticAlgorithm.generate_distance_matrix(coordinates)
+                            
 
                             # Initialize the Genetic Algorithm with current parameters
                             ga = GeneticAlgorithm(
@@ -182,6 +184,14 @@ class TSPCLI:
         fixed_params = {key: val[0] for key, val in params.items() if key != test_param}
         stats_data = []  # Collect statistics list
 
+        # Generate random city coordinates
+        coordinates = GeneticAlgorithm.generate_random_coordinates(
+            int(fixed_params["num_cities"]) if test_param != "num_cities" else int(test_value)
+        )
+
+        # Generate the distance matrix from coordinates
+        distance_matrix = GeneticAlgorithm.generate_distance_matrix(coordinates)
+
         # Test loop
         for test_value in params[test_param]:
             best_results_for_test_value = []
@@ -189,14 +199,6 @@ class TSPCLI:
             color = np.random.rand(3,)  # Random color for plotting, if needed
 
             for _ in range(repeats):
-                # Generate random city coordinates
-                coordinates = GeneticAlgorithm.generate_random_coordinates(
-                    int(fixed_params["num_cities"]) if test_param != "num_cities" else int(test_value)
-                )
-
-                # Generate the distance matrix from coordinates
-                distance_matrix = GeneticAlgorithm.generate_distance_matrix(coordinates)
-
                 # Initialize the Genetic Algorithm with current test parameters
                 ga = GeneticAlgorithm(
                     distance_matrix=distance_matrix,
