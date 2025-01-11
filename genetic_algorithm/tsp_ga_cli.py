@@ -100,117 +100,107 @@ class TSP_GA_CLI:
             return test_param
         else:
             raise ValueError("Error. Too many test parameters, choose only one for testing.")
+        
+    def test_methods(self):
+        # Prepare methods for iteration
+        selection_methods = SELECTION_METHODS if self.args.selection_method == "each" else [self.args.selection_method]
+        crossover_methods = CROSSOVER_METHODS if self.args.crossover_method == "each" else [self.args.crossover_method]
+        mutation_methods = MUTATION_METHODS if self.args.mutation_method == "each" else [self.args.mutation_method]
 
-    def run(self):
-        test_param = self.find_test_param_name()
-
-        # Set seed if fixed-seed option is provided
-        if self.args.fixed_seed:
-            random.seed(42)
-
-        # If no parameter is a range, run the algorithm once
-        if not test_param:
-            # Prepare methods for iteration
-            selection_methods = SELECTION_METHODS if self.args.selection_method == "each" else [self.args.selection_method]
-            crossover_methods = CROSSOVER_METHODS if self.args.crossover_method == "each" else [self.args.crossover_method]
-            mutation_methods = MUTATION_METHODS if self.args.mutation_method == "each" else [self.args.mutation_method]
-
-            color_index = 0  # Start with the first color
-
-            stats_data = []  # Collect statistics list
-
-            # Generate coordinates and distance matrix
-            coordinates = GeneticAlgorithm.generate_random_coordinates(self.args.num_cities[0])
-            distance_matrix = GeneticAlgorithm.generate_distance_matrix(coordinates)
-
-            for selection_method in selection_methods:
-                for crossover_method in crossover_methods:
-                    for mutation_method in mutation_methods:
-                        # Select a color from predefined list or generate one if out of predefined colors
-                        color = PREDEFINED_COLORS[color_index] if color_index < len(PREDEFINED_COLORS) else np.random.rand(3,)
-
-                        best_results_for_test_value = []
-                        for _ in range(self.args.repeats):
-
-                            # Initialize the Genetic Algorithm with current parameters
-                            ga = GeneticAlgorithm(
-                                distance_matrix=distance_matrix,
-                                population_size=self.args.population_size[0],
-                                generations=self.args.generations[0],
-                                mutation_rate=self.args.mutation_rate[0],
-                                crossover_rate=self.args.crossover_rate[0],
-                                selection_method=selection_method,
-                                crossover_method=crossover_method,
-                                mutation_method=mutation_method,
-                            )
-
-                            # Run the genetic algorithm
-                            best_route, best_distance, best_results = ga.run()
-
-                            best_results_for_test_value.append(best_results)
-
-                            # Display results
-                            print(f"Testing Selection: {selection_method}, Crossover: {crossover_method}, Mutation: {mutation_method}")
-                            print(f"Best Distance = {best_distance:.2f}")
-
-
-                        # Collect statistics for the current method combination
-                        min_values = [min(results) for results in best_results_for_test_value]
-                        stats_data.append({
-                            'selectionType': selection_method,
-                            'crossoverType': crossover_method,
-                            'mutationType': mutation_method,
-                            'mean_min': np.mean(min_values),
-                            'std_min': np.std(min_values),
-                            'p25_min': np.percentile(min_values, 25),
-                            'p50_min': np.percentile(min_values, 50),
-                            'p75_min': np.percentile(min_values, 75),
-                            'max_min': np.max(min_values)
-                        })
-
-                        # Update color for the next combination
-                        color_index = (color_index + 1) % (len(PREDEFINED_COLORS) + 1)
-                        label = f"{selection_method} + {crossover_method} + {mutation_method}"
-                        y_mean = np.mean(best_results_for_test_value, axis=0)
-                        self.viz.add_results(y_mean, label, color)
-
-            # Convert stats data to a DataFrame
-            # only if there is sufficient data
-            if self.args.repeats > 1:
-                stats_df = pd.DataFrame(stats_data)
-                stats_df.set_index(['selectionType', 'crossoverType', 'mutationType'], inplace=True)
-                print(stats_df)
-
-            return
-
-
-        # Parse the range of a test parameter
-        setattr(self.args, test_param, self.parse_range(getattr(self.args, test_param)))
+        color_index = 0  # Start with the first color
 
         stats_data = []  # Collect statistics list
 
-        # Generate random city coordinates
-        coordinates = GeneticAlgorithm.generate_random_coordinates(
-            self.args.num_cities[0] if test_param != "num_cities" else int(test_value)
-        )
+        # Generate coordinates and distance matrix
+        self.coordinates = GeneticAlgorithm.generate_random_coordinates(self.args.num_cities[0])
+        self.distance_matrix = GeneticAlgorithm.generate_distance_matrix(self.coordinates)
 
-        # Generate the distance matrix from coordinates
-        distance_matrix = GeneticAlgorithm.generate_distance_matrix(coordinates)
+        for selection_method in selection_methods:
+            for crossover_method in crossover_methods:
+                for mutation_method in mutation_methods:
+                    # Select a color from predefined list or generate one if out of predefined colors
+                    color = PREDEFINED_COLORS[color_index] if color_index < len(PREDEFINED_COLORS) else np.random.rand(3,)
+
+                    best_results_for_test_value = []
+                    for _ in range(self.args.repeats):
+
+                        # Initialize the Genetic Algorithm with current parameters
+                        ga = GeneticAlgorithm(
+                            distance_matrix=self.distance_matrix,
+                            population_size=self.args.population_size[0],
+                            generations=self.args.generations[0],
+                            mutation_rate=self.args.mutation_rate[0],
+                            crossover_rate=self.args.crossover_rate[0],
+                            selection_method=selection_method,
+                            crossover_method=crossover_method,
+                            mutation_method=mutation_method,
+                        )
+
+                        # Run the genetic algorithm
+                        best_route, best_distance, best_results = ga.run()
+
+                        best_results_for_test_value.append(best_results)
+
+                        # Display results
+                        print(f"Testing Selection: {selection_method}, Crossover: {crossover_method}, Mutation: {mutation_method}")
+                        print(f"Best Distance = {best_distance:.2f}")
+
+
+                    # Collect statistics for the current method combination
+                    min_values = [min(results) for results in best_results_for_test_value]
+                    stats_data.append({
+                        'selectionType': selection_method,
+                        'crossoverType': crossover_method,
+                        'mutationType': mutation_method,
+                        'mean_min': np.mean(min_values),
+                        'std_min': np.std(min_values),
+                        'p25_min': np.percentile(min_values, 25),
+                        'p50_min': np.percentile(min_values, 50),
+                        'p75_min': np.percentile(min_values, 75),
+                        'max_min': np.max(min_values)
+                    })
+
+                    # Update color for the next combination
+                    color_index = (color_index + 1) % (len(PREDEFINED_COLORS) + 1)
+                    label = f"{selection_method} + {crossover_method} + {mutation_method}"
+                    y_mean = np.mean(best_results_for_test_value, axis=0)
+                    self.viz.add_results(y_mean, label, color)
+
+        # Convert stats data to a DataFrame
+        # only if there is sufficient data
+        if self.args.repeats > 1:
+            stats_df = pd.DataFrame(stats_data)
+            stats_df.set_index(['selectionType', 'crossoverType', 'mutationType'], inplace=True)
+            print(stats_df)
+
+    def test_param_ranges(self):
+        # Parse the range of a test parameter
+        setattr(self.args, self.test_param, self.parse_range(getattr(self.args, self.test_param)))
+
+        stats_data = []  # Collect statistics list
 
         # Test loop
-        for test_value in getattr(self.args, test_param):
+        for test_value in getattr(self.args, self.test_param):
             best_results_for_test_value = []
+
+            # Generate random city coordinates
+            self.coordinates = GeneticAlgorithm.generate_random_coordinates(
+                self.args.num_cities[0] if self.test_param != "num_cities" else int(test_value)
+            )
+
+            # Generate the distance matrix from coordinates
+            self.distance_matrix = GeneticAlgorithm.generate_distance_matrix(self.coordinates)
 
             color = np.random.rand(3,)  # Random color for plotting, if needed
 
             for _ in range(self.args.repeats):
                 # Initialize the Genetic Algorithm with current test parameters
                 ga = GeneticAlgorithm(
-                    distance_matrix=distance_matrix,
-                    population_size=self.args.population_size[0] if test_param != "population_size" else int(test_value),
-                    generations=self.args.generations[0] if test_param != "generations" else int(test_value),
-                    mutation_rate=self.args.mutation_rate[0] if test_param != "mutation_rate" else float(test_value),
-                    crossover_rate=self.args.crossover_rate[0] if test_param != "crossover_rate" else float(test_value),
+                    distance_matrix=self.distance_matrix,
+                    population_size=self.args.population_size[0] if self.test_param != "population_size" else int(test_value),
+                    generations=self.args.generations[0] if self.test_param != "generations" else int(test_value),
+                    mutation_rate=self.args.mutation_rate[0] if self.test_param != "mutation_rate" else float(test_value),
+                    crossover_rate=self.args.crossover_rate[0] if self.test_param != "crossover_rate" else float(test_value),
                     selection_method=self.args.selection_method,
                     crossover_method=self.args.crossover_method,
                     mutation_method=self.args.mutation_method,
@@ -222,13 +212,13 @@ class TSP_GA_CLI:
                 best_results_for_test_value.append(best_results)
 
                 # Display results
-                print(f"Testing {test_param} = {test_value:.2f}")
+                print(f"Testing {self.test_param} = {test_value:.2f}")
                 print(f"Best Distance = {best_distance:.2f}")
 
             # Collect statistics for the current method combination
             min_values = [min(results) for results in best_results_for_test_value]
             stats_data.append({
-                f'{test_param}': test_value,
+                f'{self.test_param}': test_value,
                 'mean_min': np.mean(min_values),
                 'std_min': np.std(min_values),
                 'p25_min': np.percentile(min_values, 25),
@@ -238,14 +228,26 @@ class TSP_GA_CLI:
             })
             
             y_mean = np.mean(best_results_for_test_value, axis=0)
-            self.viz.add_results(y_mean, f"\n{test_param}={test_value:.2f}", color)
+            self.viz.add_results(y_mean, f"\n{self.test_param}={test_value:.2f}", color)
 
         # Convert stats data to a DataFrame
         # only if there is sufficient data
         if self.args.repeats > 1:
             stats_df = pd.DataFrame(stats_data)
-            stats_df.set_index([f'{test_param}'], inplace=True)
+            stats_df.set_index([f'{self.test_param}'], inplace=True)
             print(stats_df)
+
+    def run(self):
+        self.test_param = self.find_test_param_name()
+
+        # Set seed if fixed-seed option is provided
+        if self.args.fixed_seed:
+            random.seed(42)
+
+        if not self.test_param:
+            self.test_methods()
+        else:
+            self.test_param_ranges()
 
         # # If only one value tested, visualize the route
         # if len(params[test_param]) == 1:
