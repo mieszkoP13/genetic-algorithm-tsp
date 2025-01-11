@@ -2,6 +2,7 @@ import argparse
 import random
 import numpy as np
 import pandas as pd
+from typing import Any, Optional, List
 from genetic_algorithm.visualization import Visualization
 from genetic_algorithm.genetic_algorithm import GeneticAlgorithm
 
@@ -56,47 +57,52 @@ class TSP_GA_CLI:
 
     def parse_range(self, values):
         """
-        Parses a range argument (1 value = fixed, 3 values = range).
-        Returns a list of values.
+        Parses a range argument.
         """
-        if len(values) == 1:
-            return [values[0]]
-        elif len(values) == 3:
-            # Determine type based on first value
+        if len(values) == 3:
             value_type = float if isinstance(values[0], float) or "." in str(values[0]) else int
             start, step, stop = map(value_type, values)
             return list(np.arange(start, stop + step, step))  # Inclusive stop
         else:
-            raise ValueError("Provide either 1 value (fixed) or 3 values (start, step, stop).")
+            raise ValueError("Error.")
 
-    def ensure_single_test_param(self, params):
+    def find_test_param_name(self) -> str:
         """
-        Ensures that only one parameter is a range.
+        Find and validate the test parameter.
+        Ensures that exactly one parameter has 3 numeric values (start, step, stop) for testing.
         """
-        range_params = [key for key, val in params.items() if len(val) > 1]
-        if len(range_params) > 1:
-            raise ValueError(f"Only one parameter can be a range. Multiple ranges provided: {range_params}.")
-        return range_params[0] if range_params else None
+        test_param: str = ""
+        test_params_count: int = 0
+
+        for name, value in self.args.__dict__.items():
+            # Skip non-list (not nargs) arguments
+            if not isinstance(value, list):
+                continue
+            
+            # Validate that the list contains numbers
+            if all(isinstance(x, (float, int)) for x in value):
+                if len(value) == 1:
+                    continue  # Single value is valid but not a test param
+                elif len(value) == 3:
+                    test_param = name
+                    test_params_count += 1
+                else:
+                    raise ValueError(
+                        f"Error. Invalid number of values for '{name}': Expected 1 or 3, got {len(value)}."
+                    )
+            else:
+                raise ValueError(f"Error. Invalid test parameter type for '{name}', choose int or float.")
+
+        # Ensure only one test parameter is defined
+        if test_params_count == 0:
+            return None
+        elif test_params_count == 1:
+            return test_param
+        else:
+            raise ValueError("Error. Too many test parameters, choose only one for testing.")
 
     def run(self):
-        # Parse all parameters
-        num_cities = self.parse_range(self.args.num_cities)
-        population_size = self.parse_range(self.args.population_size)
-        generations = self.parse_range(self.args.generations)
-        mutation_rate = self.parse_range(self.args.mutation_rate)
-        crossover_rate = self.parse_range(self.args.crossover_rate)
-        repeats = self.args.repeats
-
-        params = {
-            "num_cities": num_cities,
-            "population_size": population_size,
-            "generations": generations,
-            "mutation_rate": mutation_rate,
-            "crossover_rate": crossover_rate
-        }
-
-        # Ensure only one parameter has a range
-        test_param = self.ensure_single_test_param(params)
+        test_param = self.find_test_param_name()
 
         # Set seed if fixed-seed option is provided
         if self.args.fixed_seed:
@@ -114,7 +120,7 @@ class TSP_GA_CLI:
             stats_data = []  # Collect statistics list
 
             # Generate coordinates and distance matrix
-            coordinates = GeneticAlgorithm.generate_random_coordinates(num_cities[0])
+            coordinates = GeneticAlgorithm.generate_random_coordinates(self.args.num_cities[0])
             distance_matrix = GeneticAlgorithm.generate_distance_matrix(coordinates)
 
             for selection_method in selection_methods:
@@ -124,17 +130,15 @@ class TSP_GA_CLI:
                         color = PREDEFINED_COLORS[color_index] if color_index < len(PREDEFINED_COLORS) else np.random.rand(3,)
 
                         best_results_for_test_value = []
-                        for _ in range(repeats):
-
-                            
+                        for _ in range(self.args.repeats):
 
                             # Initialize the Genetic Algorithm with current parameters
                             ga = GeneticAlgorithm(
                                 distance_matrix=distance_matrix,
-                                population_size=population_size[0],
-                                generations=generations[0],
-                                mutation_rate=mutation_rate[0],
-                                crossover_rate=crossover_rate[0],
+                                population_size=self.args.population_size[0],
+                                generations=self.args.generations[0],
+                                mutation_rate=self.args.mutation_rate[0],
+                                crossover_rate=self.args.crossover_rate[0],
                                 selection_method=selection_method,
                                 crossover_method=crossover_method,
                                 mutation_method=mutation_method,
@@ -172,7 +176,7 @@ class TSP_GA_CLI:
 
             # Convert stats data to a DataFrame
             # only if there is sufficient data
-            if repeats > 1:
+            if self.args.repeats > 1:
                 stats_df = pd.DataFrame(stats_data)
                 stats_df.set_index(['selectionType', 'crossoverType', 'mutationType'], inplace=True)
                 print(stats_df)
@@ -180,32 +184,33 @@ class TSP_GA_CLI:
             return
 
 
-        # Fixed parameters (exclude the test parameter)
-        fixed_params = {key: val[0] for key, val in params.items() if key != test_param}
+        # Parse the range of a test parameter
+        setattr(self.args, test_param, self.parse_range(getattr(self.args, test_param)))
+
         stats_data = []  # Collect statistics list
 
         # Generate random city coordinates
         coordinates = GeneticAlgorithm.generate_random_coordinates(
-            int(fixed_params["num_cities"]) if test_param != "num_cities" else int(test_value)
+            self.args.num_cities[0] if test_param != "num_cities" else int(test_value)
         )
 
         # Generate the distance matrix from coordinates
         distance_matrix = GeneticAlgorithm.generate_distance_matrix(coordinates)
 
         # Test loop
-        for test_value in params[test_param]:
+        for test_value in getattr(self.args, test_param):
             best_results_for_test_value = []
 
             color = np.random.rand(3,)  # Random color for plotting, if needed
 
-            for _ in range(repeats):
+            for _ in range(self.args.repeats):
                 # Initialize the Genetic Algorithm with current test parameters
                 ga = GeneticAlgorithm(
                     distance_matrix=distance_matrix,
-                    population_size=int(fixed_params["population_size"]) if test_param != "population_size" else int(test_value),
-                    generations=int(fixed_params["generations"]) if test_param != "generations" else int(test_value),
-                    mutation_rate=float(fixed_params["mutation_rate"]) if test_param != "mutation_rate" else float(test_value),
-                    crossover_rate=float(fixed_params["crossover_rate"]) if test_param != "crossover_rate" else float(test_value),
+                    population_size=self.args.population_size[0] if test_param != "population_size" else int(test_value),
+                    generations=self.args.generations[0] if test_param != "generations" else int(test_value),
+                    mutation_rate=self.args.mutation_rate[0] if test_param != "mutation_rate" else float(test_value),
+                    crossover_rate=self.args.crossover_rate[0] if test_param != "crossover_rate" else float(test_value),
                     selection_method=self.args.selection_method,
                     crossover_method=self.args.crossover_method,
                     mutation_method=self.args.mutation_method,
@@ -237,11 +242,11 @@ class TSP_GA_CLI:
 
         # Convert stats data to a DataFrame
         # only if there is sufficient data
-        if repeats > 1:
+        if self.args.repeats > 1:
             stats_df = pd.DataFrame(stats_data)
             stats_df.set_index([f'{test_param}'], inplace=True)
             print(stats_df)
 
-        # If only one value tested, visualize the route
-        if len(params[test_param]) == 1:
-            self.viz.plot_route(best_route, coordinates)
+        # # If only one value tested, visualize the route
+        # if len(params[test_param]) == 1:
+        #     self.viz.plot_route(best_route, coordinates)
