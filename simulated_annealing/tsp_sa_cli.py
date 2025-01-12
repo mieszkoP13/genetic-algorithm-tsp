@@ -1,6 +1,7 @@
 import argparse
 from simulated_annealing.simulated_annealing import SimulatedAnnealing
 from genetic_algorithm.genetic_algorithm import GeneticAlgorithm
+from genetic_algorithm.tsp_ga_cli import TSP_GA_CLI
 from genetic_algorithm.visualization import Visualization
 import pandas as pd
 import numpy as np
@@ -13,20 +14,83 @@ class TSP_SA_CLI:
         self.viz = viz
 
     def config(self):
-        self.parser.add_argument("-n", "--num-cities", type=int, required=True, help="Number of cities.")
-        self.parser.add_argument("-t", "--initial-temperature", type=float, default=1000, help="Initial temperature.")
-        self.parser.add_argument("-x", "--cooling-rate", type=float, default=0.995, help="Cooling rate.")
-        self.parser.add_argument("-e", "--stop-temperature", type=float, default=1e-3, help="Stopping temperature.")
+        self.parser.add_argument("-n", "--num-cities", type=int, required=True,
+                                 help="Number of cities.")
+        self.parser.add_argument("-t", "--initial-temperature", type=float, nargs="+", required=True,
+                                 help="Initial temperature. Provide one value or three values for range testing (start, step, stop).")
+        self.parser.add_argument("-x", "--cooling-rate", type=float, nargs="+", required=True,
+                                 help="Cooling rate. Provide one value or three values for range testing (start, step, stop).")
+        self.parser.add_argument("-e", "--stop-temperature", type=float, nargs="+", required=True,
+                                 help="Stopping temperature. Provide one value or three values for range testing (start, step, stop).")
         self.parser.add_argument("-s", "--fixed-seed", action="store_true",
                                  help="Use a fixed seed (42) for random number generation to ensure reproducibility.")
         self.parser.add_argument("-r", "--repeats", type=int, default=1,
                                  help="Number of times to repeat the experiment for averaging. Default is 1.")
+        
+    @staticmethod
+    def dynamic_round(value, significant_digits=4):
+        """
+        Dynamically formats a number based on its magnitude.
+        Ensures a specified number of significant digits.
+        """
+        if value == 0:
+            return "0"  # Special case for zero
+        magnitude = int(np.floor(np.log10(abs(value))))  # Find the order of magnitude
+        decimal_places = max(significant_digits - magnitude - 1, 0)
+        return f"{value:.{decimal_places}f}"
 
-    def run(self):
-        if self.args.fixed_seed:
-            import random
-            random.seed(42)
+    def test_param_ranges(self):
+        test_param = self.test_param
+        setattr(self.args, test_param, TSP_GA_CLI.parse_range(getattr(self.args, test_param)))
 
+        stats_data = []  # Collect statistics list
+
+        for test_value in getattr(self.args, test_param):
+            best_results_for_test_value = []
+
+            # Generate random TSP problem
+            coordinates = GeneticAlgorithm.generate_random_coordinates(self.args.num_cities)
+            distance_matrix = GeneticAlgorithm.generate_distance_matrix(coordinates)
+
+            for _ in range(self.args.repeats):
+                sa = SimulatedAnnealing(
+                    distance_matrix=distance_matrix,
+                    initial_temperature=self.args.initial_temperature[0] if test_param != "initial_temperature" else float(test_value),
+                    cooling_rate=self.args.cooling_rate[0] if test_param != "cooling_rate" else float(test_value),
+                    stop_temperature=self.args.stop_temperature[0] if test_param != "stop_temperature" else float(test_value),
+                )
+
+                # Run the Simulated Annealing algorithm
+                best_route, best_distance, best_results = sa.run()
+                best_results_for_test_value.append(best_results)
+
+                # Display results
+                print(f"Testing {test_param} = {self.dynamic_round(test_value)}")
+                print(f"Best Distance = {self.dynamic_round(best_distance)}")
+
+            # Collect statistics for the current test value
+            min_values = [min(results) for results in best_results_for_test_value]
+            stats_data.append({
+                f'{test_param}': test_value,
+                'mean_min': np.mean(min_values),
+                'std_min': np.std(min_values),
+                'p25_min': np.percentile(min_values, 25),
+                'p50_min': np.percentile(min_values, 50),
+                'p75_min': np.percentile(min_values, 75),
+                'max_min': np.max(min_values)
+            })
+
+            color = np.random.rand(3,)
+            y_mean = np.mean(best_results_for_test_value, axis=0)
+            self.viz.add_results(y_mean, f"\n{test_param}={self.dynamic_round(test_value)}", color)
+
+        # Convert stats data to a DataFrame if enough data
+        if self.args.repeats > 1:
+            stats_df = pd.DataFrame(stats_data)
+            stats_df.set_index([f'{test_param}'], inplace=True)
+            print(stats_df)
+
+    def single_execution(self):
         # Generate random TSP problem
         coordinates = GeneticAlgorithm.generate_random_coordinates(self.args.num_cities)
         distance_matrix = GeneticAlgorithm.generate_distance_matrix(coordinates)
@@ -41,9 +105,9 @@ class TSP_SA_CLI:
             # Initialize Simulated Annealing with generated distance matrix
             sa = SimulatedAnnealing(
                 distance_matrix=distance_matrix,
-                initial_temperature=self.args.initial_temperature,
-                cooling_rate=self.args.cooling_rate,
-                stop_temperature=self.args.stop_temperature,
+                initial_temperature=self.args.initial_temperature[0],
+                cooling_rate=self.args.cooling_rate[0],
+                stop_temperature=self.args.stop_temperature[0],
             )
 
             # Run Simulated Annealing
@@ -53,14 +117,14 @@ class TSP_SA_CLI:
             best_results_for_repeats.append(best_results)
 
             # Display results
-            print(f"Best Distance = {best_distance:.2f}")
+            print(f"Best Distance = {self.dynamic_round(best_distance)}")
 
         # Collect statistics
         min_values = [min(results) for results in best_results_for_repeats]
         stats_data.append({
-            'initial_temperature': self.args.initial_temperature,
-            'cooling_rate': self.args.cooling_rate,
-            'stop_temperature': self.args.stop_temperature,
+            'initial_temperature': self.args.initial_temperature[0],
+            'cooling_rate': self.args.cooling_rate[0],
+            'stop_temperature': self.args.stop_temperature[0],
             'mean_min': np.mean(min_values),
             'std_min': np.std(min_values),
             'p25_min': np.percentile(min_values, 25),
@@ -73,8 +137,20 @@ class TSP_SA_CLI:
         self.viz.add_results(y_mean, "label", "red")
 
         # Convert stats data to a DataFrame
+        # only if there is sufficient data
         if self.args.repeats > 1:
             stats_df = pd.DataFrame(stats_data)
             stats_df.set_index(['initial_temperature', 'cooling_rate', 'stop_temperature'], inplace=True)
-            print("\nStatistics:")
             print(stats_df)
+
+    def run(self):
+        self.test_param = TSP_GA_CLI.find_test_param_name(self.args)
+
+        if self.args.fixed_seed:
+            import random
+            random.seed(42)
+
+        if not self.test_param:
+            self.single_execution()
+        else:
+            self.test_param_ranges()

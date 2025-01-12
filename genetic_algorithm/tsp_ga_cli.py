@@ -55,7 +55,8 @@ class TSP_GA_CLI:
         self.parser.add_argument("-r", "--repeats", type=int, default=1,
                                  help="Number of times to repeat the experiment for averaging. Default is 1.")
 
-    def parse_range(self, values):
+    @staticmethod
+    def parse_range(values):
         """
         Parses a range argument.
         """
@@ -66,7 +67,8 @@ class TSP_GA_CLI:
         else:
             raise ValueError("Error.")
 
-    def find_test_param_name(self) -> str:
+    @staticmethod
+    def find_test_param_name(args) -> str:
         """
         Find and validate the test parameter.
         Ensures that exactly one parameter has 3 numeric values (start, step, stop) for testing.
@@ -74,7 +76,7 @@ class TSP_GA_CLI:
         test_param: str = ""
         test_params_count: int = 0
 
-        for name, value in self.args.__dict__.items():
+        for name, value in args.__dict__.items():
             # Skip non-list (not nargs) arguments
             if not isinstance(value, list):
                 continue
@@ -238,7 +240,7 @@ class TSP_GA_CLI:
             print(stats_df)
 
     def run(self):
-        self.test_param = self.find_test_param_name()
+        self.test_param = self.find_test_param_name(self.args)
 
         # Set seed if fixed-seed option is provided
         if self.args.fixed_seed:
