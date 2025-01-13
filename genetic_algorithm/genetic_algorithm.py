@@ -41,27 +41,6 @@ class GeneticAlgorithm:
             "insertion": self.mutate_insertion,
         }
 
-    @staticmethod
-    def calculate_distance(city1: Tuple[float, float], city2: Tuple[float, float]) -> float:
-        """Calculate the Euclidean distance between two cities."""
-        return math.sqrt((city1[0] - city2[0]) ** 2 + (city1[1] - city2[1]) ** 2)
-
-    @staticmethod
-    def generate_random_coordinates(num_cities: int) -> List[Tuple[float, float]]:
-        """Generate random coordinates for a given number of cities."""
-        return [(random.uniform(0, 10), random.uniform(0, 10)) for _ in range(num_cities)]
-
-    @staticmethod
-    def generate_distance_matrix(coordinates: List[Tuple[float, float]]) -> List[List[float]]:
-        """Generate the distance matrix from the coordinates of the cities."""
-        num_cities = len(coordinates)
-        distance_matrix = [[0.0] * num_cities for _ in range(num_cities)]
-        for i in range(num_cities):
-            for j in range(i + 1, num_cities):
-                distance = GeneticAlgorithm.calculate_distance(coordinates[i], coordinates[j])
-                distance_matrix[i][j] = distance_matrix[j][i] = distance
-        return distance_matrix
-
     def initialize_population(self) -> List[List[int]]:
         """Initialize the population with random routes."""
         population = []

@@ -5,6 +5,7 @@ import pandas as pd
 from typing import Any, Optional, List
 from genetic_algorithm.visualization import Visualization
 from genetic_algorithm.genetic_algorithm import GeneticAlgorithm
+from utils.helpers import HelperUtils
 
 SELECTION_METHODS = ["tournament", "elitism", "steady_state"]
 CROSSOVER_METHODS = ["one_point", "cycle", "order"]
@@ -54,54 +55,6 @@ class TSP_GA_CLI:
                                  help="Use a fixed seed (42) for random number generation to ensure reproducibility.")
         self.parser.add_argument("-r", "--repeats", type=int, default=1,
                                  help="Number of times to repeat the experiment for averaging. Default is 1.")
-
-    @staticmethod
-    def parse_range(values):
-        """
-        Parses a range argument.
-        """
-        if len(values) == 3:
-            value_type = float if isinstance(values[0], float) or "." in str(values[0]) else int
-            start, step, stop = map(value_type, values)
-            return list(np.arange(start, stop + step, step))  # Inclusive stop
-        else:
-            raise ValueError("Error.")
-
-    @staticmethod
-    def find_test_param_name(args) -> str:
-        """
-        Find and validate the test parameter.
-        Ensures that exactly one parameter has 3 numeric values (start, step, stop) for testing.
-        """
-        test_param: str = ""
-        test_params_count: int = 0
-
-        for name, value in args.__dict__.items():
-            # Skip non-list (not nargs) arguments
-            if not isinstance(value, list):
-                continue
-            
-            # Validate that the list contains numbers
-            if all(isinstance(x, (float, int)) for x in value):
-                if len(value) == 1:
-                    continue  # Single value is valid but not a test param
-                elif len(value) == 3:
-                    test_param = name
-                    test_params_count += 1
-                else:
-                    raise ValueError(
-                        f"Error. Invalid number of values for '{name}': Expected 1 or 3, got {len(value)}."
-                    )
-            else:
-                raise ValueError(f"Error. Invalid test parameter type for '{name}', choose int or float.")
-
-        # Ensure only one test parameter is defined
-        if test_params_count == 0:
-            return None
-        elif test_params_count == 1:
-            return test_param
-        else:
-            raise ValueError("Error. Too many test parameters, choose only one for testing.")
         
     def test_methods(self):
         # Prepare methods for iteration
@@ -114,8 +67,8 @@ class TSP_GA_CLI:
         stats_data = []  # Collect statistics list
 
         # Generate coordinates and distance matrix
-        self.coordinates = GeneticAlgorithm.generate_random_coordinates(self.args.num_cities[0])
-        self.distance_matrix = GeneticAlgorithm.generate_distance_matrix(self.coordinates)
+        self.coordinates = HelperUtils.generate_random_coordinates(self.args.num_cities[0])
+        self.distance_matrix = HelperUtils.generate_distance_matrix(self.coordinates)
 
         for selection_method in selection_methods:
             for crossover_method in crossover_methods:
@@ -177,7 +130,7 @@ class TSP_GA_CLI:
 
     def test_param_ranges(self):
         # Parse the range of a test parameter
-        setattr(self.args, self.test_param, self.parse_range(getattr(self.args, self.test_param)))
+        setattr(self.args, self.test_param, HelperUtils.parse_range(getattr(self.args, self.test_param)))
 
         stats_data = []  # Collect statistics list
 
@@ -186,12 +139,12 @@ class TSP_GA_CLI:
             best_results_for_test_value = []
 
             # Generate random city coordinates
-            self.coordinates = GeneticAlgorithm.generate_random_coordinates(
+            self.coordinates = HelperUtils.generate_random_coordinates(
                 self.args.num_cities[0] if self.test_param != "num_cities" else int(test_value)
             )
 
             # Generate the distance matrix from coordinates
-            self.distance_matrix = GeneticAlgorithm.generate_distance_matrix(self.coordinates)
+            self.distance_matrix = HelperUtils.generate_distance_matrix(self.coordinates)
 
             color = np.random.rand(3,)  # Random color for plotting, if needed
 
@@ -240,7 +193,7 @@ class TSP_GA_CLI:
             print(stats_df)
 
     def run(self):
-        self.test_param = self.find_test_param_name(self.args)
+        self.test_param = HelperUtils.find_test_param_name(self.args)
 
         # Set seed if fixed-seed option is provided
         if self.args.fixed_seed:
