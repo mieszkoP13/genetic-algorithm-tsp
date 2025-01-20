@@ -121,7 +121,7 @@ class TSP_SA_CLI:
         })
 
         y_mean = np.mean(best_results_for_repeats, axis=0)
-        self.viz.add_results(y_mean, "label", "red")
+        self.viz.add_results(y_mean, f"t = {self.args.initial_temperature[0]}, cr = {self.args.cooling_rate[0]}, e = {self.args.stop_temperature[0]}", "red")
 
         # Convert stats data to a DataFrame
         # only if there is sufficient data
